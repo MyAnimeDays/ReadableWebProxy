@@ -1,0 +1,39 @@
+type: eastern
+
+
+baseUrl: [
+	"http://lndb.info/"
+	]
+
+badwords: [
+			"/auth/",
+			"/about/",
+			"/join-us/",
+			"/chat/",
+			'&format=pdf',
+			'?format=pdf',
+			'?replytocom=',
+			'#Comments',
+			'/comments/',
+			'/history/',
+			]
+
+
+decomposeBefore: [
+	{'class'      :'comments-area'},
+]
+
+decompose: [
+
+
+	{'class'  : 'header'},
+	{'class'  : 'left'},
+	# {'class'  : 'infotable'},
+
+	{'class'  : 'comments-area'},
+]
+
+stripTitle: [' - LNDB.info - The Light Novel Database']
+
+
+

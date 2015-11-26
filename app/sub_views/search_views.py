@@ -24,10 +24,10 @@ def build_tsquery(in_str):
 	ret = " & ".join(args)
 	return ret
 
-def fetch_content(query_text, column, page, sources=None):
+def fetch_content(query_text, column, text_column, page, sources=None):
 	session = db.get_session()
 	tsq = build_tsquery(query_text)
-
+	search = None
 	if column == db.WebPages.title:
 		query = session                                                                                         \
 				.query(db.WebPages, func.ts_rank_cd(func.to_tsvector("english", column), func.to_tsquery(tsq))) \
@@ -39,8 +39,17 @@ def fetch_content(query_text, column, page, sources=None):
 	elif column == db.WebPages.tsv_content:
 		query = session                                                                                         \
 				.query(db.WebPages, func.ts_rank_cd(column, func.to_tsquery(tsq)))                              \
-				.filter( column.match(tsq) )                                                                    \
-				.order_by(func.ts_rank_cd(column, func.to_tsquery(tsq)).desc())
+				.filter( column.match(tsq) )
+
+		if "'" in query_text or '"' in query_text:
+			search = query_text.replace("!", " ").replace("?", " ").replace("'", " ").replace('"', " ").replace(',', " ").replace('.', " ").strip()
+			while "  " in search:
+				search = search.replace("  ", " ")
+			search = search.strip()
+			search = '%{}%'.format(search.lower())
+			query = query.filter( func.lower(text_column).like(search) )
+
+		query = query.order_by(func.ts_rank_cd(column, func.to_tsquery(tsq)).desc())
 
 		if sources:
 			query = query.filter(db.WebPages.netloc.in_(sources))
@@ -49,7 +58,7 @@ def fetch_content(query_text, column, page, sources=None):
 		raise ValueError("Wat?")
 
 	print(str(query.statement.compile(dialect=postgresql.dialect())))
-	print("param: '%s', '%s'" % (tsq, sources))
+	print("param: '%s', '%s', '%s'" % (tsq, sources, search))
 
 	try:
 		entries = paginate(query, page, per_page=50)
@@ -72,7 +81,7 @@ def fetch_content(query_text, column, page, sources=None):
 
 	return entries
 
-def render_search(query_text, column, page, title):
+def render_search(query_text, column, text_column, page, title):
 	print(request)
 	if 'source-site' in request.args:
 		try:
@@ -89,7 +98,7 @@ def render_search(query_text, column, page, title):
 		sources = [sources]
 
 	try:
-		entries = fetch_content(query_text, column, page, sources=sources)
+		entries = fetch_content(query_text, column, text_column, page, sources=sources)
 	except (sqlalchemy.exc.ProgrammingError,
 			sqlalchemy.exc.InternalError,
 			sqlalchemy.exc.OperationalError):
@@ -114,7 +123,9 @@ def render_search_page():
 
 	rules = WebMirror.rules.load_rules()
 
-	netlocs = [item['netlocs'] for item in rules if item['netlocs']]
+	netlocs = [item['starturls'] for item in rules if item['starturls']]
+	netlocs = [list(set([urllib.parse.urlsplit(item).netloc for item in tmp])) for tmp in netlocs]
+
 	[item.sort() for item in netlocs]
 	netlocs.sort(key=lambda x: len(x))
 
@@ -131,9 +142,9 @@ def search(page=1):
 		return render_search_page()
 
 	if scope == "title":
-		return render_search(query, db.WebPages.title, page, "Title search for '%s'" % query)
+		return render_search(query, db.WebPages.title, db.WebPages.title, page, "Title search for '%s'" % query)
 	if scope == "content":
-		return render_search(query, db.WebPages.tsv_content, page, "Content search for '%s'" % query)
+		return render_search(query, db.WebPages.tsv_content, db.WebPages.content, page, "Content search for '%s'" % query)
 
 	else:
 		return render_template('error.html', title = 'Error!', message = "Error! Invalid search scope!")

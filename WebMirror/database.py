@@ -74,8 +74,8 @@ def get_engine():
 				return ENGINES[csid]
 
 			print("INFO: Creating engine for process! Engine name: '%s'" % csid)
-			ENGINES[csid] = create_engine(SQLALCHEMY_DATABASE_URI) #,
-						# isolation_level="REPEATABLE READ")
+			ENGINES[csid] = create_engine(SQLALCHEMY_DATABASE_URI,
+						isolation_level="REPEATABLE READ")
 
 	return ENGINES[csid]
 
@@ -233,8 +233,8 @@ class Author(Base):
 
 def tag_creator(tag):
 
-	tmp = get_session().query(Tags)         \
-		.filter(Tags.tag == tag) \
+	tmp = get_session().query(Tags) \
+		.filter(Tags.tag == tag)    \
 		.scalar()
 	if tmp:
 		return tmp
@@ -242,7 +242,7 @@ def tag_creator(tag):
 	return Tags(tag=tag)
 
 def author_creator(author):
-	tmp = get_session().query(Author)                  \
+	tmp = get_session().query(Author)    \
 		.filter(Author.author == author) \
 		.scalar()
 	if tmp:
@@ -356,3 +356,38 @@ Base.metadata.create_all(bind=get_engine(), checkfirst=True)
 #         OR
 #             web_pages.netloc = 'www.wattpad.com'
 #     );
+
+
+# EXPLAIN ANALYZE UPDATE web_pages SET fetchtime='now'::timestamp WHERE id=428615139;
+# EXPLAIN ANALYZE UPDATE web_pages SET tsv_content = NULL WHERE id=428615139;
+
+# SELECT  tsv_content FROM web_pages WHERE id=428615139;
+
+'''
+CREATE OR REPLACE FUNCTION web_pages_content_update_func() RETURNS TRIGGER AS $_$
+BEGIN
+    --
+    -- Create a row in {name}changes to reflect the operation performed on emp,
+    -- make use of the special variable TG_OP to work out the operation.
+    --
+    IF TG_OP = 'INSERT' THEN
+        IF NEW.content IS NOT NULL THEN
+            NEW.tsv_content = to_tsvector(coalesce(NEW.content));
+        END IF;
+    ELSEIF TG_OP = 'UPDATE' THEN
+        IF NEW.content != OLD.content THEN
+            NEW.tsv_content = to_tsvector(coalesce(NEW.content));
+        END IF;
+    END IF;
+    RETURN NEW;
+END $_$ LANGUAGE 'plpgsql';
+
+
+CREATE TRIGGER
+    update_row_count_trigger
+BEFORE INSERT OR UPDATE ON
+    web_pages
+FOR EACH ROW EXECUTE PROCEDURE
+    web_pages_content_update_func();
+'''
+

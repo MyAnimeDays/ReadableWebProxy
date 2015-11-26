@@ -1,19 +1,35 @@
 
 
+
 FOLLOW_GOOGLE_LINKS: False
 allImages: False
 
 type: "western"
 
 baseUrl: [
-	"https://www.fictionpress.com/",
-	"http://www.fictionpress.com/",
+	"https://archiveofourown.org/",
 	]
 
 trigger: False
 
 badwords: [
-			"/about/",
+			"/about",
+			"/search",
+			"/abuse_reports/",
+			"/known_issues",
+			"/diversity",
+			"/tos",
+			"/dmca",
+
+			"/comments/",
+			"/kudos",
+			"#share",
+			"#comments",
+
+			".epub?",
+			".pdf?",
+			".mobi?",
+
 			"/join-us/",
 			"/chat/",
 			'&format=pdf',
@@ -27,20 +43,6 @@ badwords: [
 			"/betareaders/",
 			"/poetry/", # Really?
 
-			"/post.php?",
-			"/author.php?",
-			"fictionpress.com/atom/u/",
-			".myspacecdn.com",
-			"static.flickr.com",
-			"/http/",
-
-			# Block user pages (they're HUGE)
-			'fictionpress.com/u/',
-
-			'/nobody_files/',
-			'/Free Verse3_files/',
-			'/free%20verse3_files/',
-			'_files/',
 			]
 
 # Content Stripping needs to be determined.
@@ -53,7 +55,18 @@ decompose: [
 	{'id' : "p_footer"},
 	{'id' : "profile_top"},
 	{'id' : "review"},
+	{'id' : "header"},
+	{'id' : "footer"},
+	{'id' : "add_comment_placeholder"},
+	{'id' : "comments_placeholder"},
+	{'id' : "add_comment"},
+	{'id' : "feedback"},
+	{'class' : "landmark"},
+	{'class' : "heading"},
+	{'class' : "actions"},
+	{'class' : "comment"},
 	{'class' : "zmenu"},
+	{'role'  : "menu"},
 	{'class' : "lc-wrapper"},
 ]
 

@@ -4,12 +4,10 @@ from settings import DATABASE_IP            as C_DATABASE_IP
 from settings import DATABASE_DB_NAME       as C_DATABASE_DB_NAME
 from settings import DATABASE_USER          as C_DATABASE_USER
 from settings import DATABASE_PASS          as C_DATABASE_PASS
-from settings import SECRET_KEY             as C_SECRET_KEY
-from settings import WTF_CSRF_SECRET_KEY    as C_WTF_CSRF_SECRET_KEY
-from settings import SECURITY_PASSWORD_SALT as C_SECURITY_PASSWORD_SALT
 
 from settings import RELINK_SECRET          as C_RELINK_SECRET
 from settings import RESOURCE_DIR           as C_RESOURCE_DIR
+from settings import RABBIT_ENABLED         as C_DO_RABBIT
 
 
 from settings import RABBIT_LOGIN           as C_RABBIT_LOGIN
@@ -18,11 +16,15 @@ from settings import RABBIT_SRVER           as C_RABBIT_SRVER
 from settings import RABBIT_VHOST           as C_RABBIT_VHOST
 
 
-
 import os
 import sys
 import hashlib
 import datetime
+
+import string
+import random
+random.seed()
+
 if len(sys.argv) > 1 and "debug" in sys.argv:
 	SQLALCHEMY_ECHO = True
 
@@ -31,6 +33,12 @@ REFETCH_INTERVAL = datetime.timedelta(days=7*3)
 relink_secret = hashlib.sha1(C_RELINK_SECRET.encode("ascii")).hexdigest()
 
 basedir = os.path.abspath(os.path.dirname(__file__))
+
+def get_random(chars):
+	rand = [random.choice(string.ascii_letters) for x in range(chars)]
+	rand = "".join(rand)
+	return rand
+
 
 class BaseConfig(object):
 
@@ -63,10 +71,14 @@ class BaseConfig(object):
 	DATABASE_DB_NAME       = C_DATABASE_DB_NAME
 	DATABASE_USER          = C_DATABASE_USER
 	DATABASE_PASS          = C_DATABASE_PASS
-	SECRET_KEY             = C_SECRET_KEY
-	WTF_CSRF_SECRET_KEY    = C_WTF_CSRF_SECRET_KEY
 
-	SECURITY_PASSWORD_SALT = C_SECURITY_PASSWORD_SALT
 
 	RESOURCE_DIR = C_RESOURCE_DIR
+
+	# The WTF protection doesn't have to persist across
+	# execution sessions, since that'll break any
+	# active sessions anyways. Therefore, just generate
+	# them randomly at each start.
+	SECRET_KEY             = get_random(20)
+	WTF_CSRF_SECRET_KEY    = get_random(20)
 

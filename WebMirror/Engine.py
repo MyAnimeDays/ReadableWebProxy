@@ -13,6 +13,7 @@ import os.path
 import os
 import sys
 import sqlalchemy.exc
+import random
 
 from sqlalchemy import desc
 
@@ -179,12 +180,12 @@ class SiteArchiver(LogBase.LoggerMixin):
 	# The db defaults to  (e.g. max signed integer value) anyways
 	FETCH_DISTANCE = 1000 * 1000
 
-	def __init__(self, cookie_lock, run_filters=True, response_queue=None):
-		print("SiteArchiver __init__()")
+	def __init__(self, cookie_lock, job_get_lock=False, run_filters=True, response_queue=None):
+		# print("SiteArchiver __init__()")
 		super().__init__()
 
 		self.db = db
-
+		self.job_get_lock = job_get_lock
 		self.cookie_lock = cookie_lock
 		self.resp_q = response_queue
 
@@ -243,7 +244,7 @@ class SiteArchiver(LogBase.LoggerMixin):
 
 	# Minimal proxy because I want to be able to call the fetcher without affecting the DB.
 	def fetch(self, job):
-		fetcher = self.fetcher(self.ruleset, job.url, job.starturl, self.cookie_lock, wg_handle=self.wg, response_queue=self.resp_q)
+		fetcher = self.fetcher(rules=self.ruleset, target_url=job.url, start_url=job.starturl, cookie_lock=self.cookie_lock, job=job, wg_handle=self.wg, response_queue=self.resp_q)
 		response = fetcher.fetch()
 		return response
 
@@ -252,6 +253,10 @@ class SiteArchiver(LogBase.LoggerMixin):
 	# transferred content (e.g. is it an image/html page/binary file)
 	def dispatchRequest(self, job):
 		response = self.fetch(job)
+		self.log.info("Dispatching job: %s, url: %s", job, job.url)
+		self.processResponse(job, response)
+
+	def processResponse(self, job, response):
 		if "file" in response:
 			# No title is present in a file response
 			self.upsertFileResponse(job, response)
@@ -289,8 +294,8 @@ class SiteArchiver(LogBase.LoggerMixin):
 
 				job.fetchtime = datetime.datetime.now()
 
-				self.db.get_session().flush()
 				self.db.get_session().commit()
+				self.log.info("Marked plain job with id %s, url %s as complete!", job.id, job.url)
 				break
 			except sqlalchemy.exc.OperationalError:
 				self.db.get_session().rollback()
@@ -309,7 +314,9 @@ class SiteArchiver(LogBase.LoggerMixin):
 		if have:
 			return
 		else:
-			assert ("srcname" in entry), "'srcname' not in entry for item from '%s' (contenturl: '%s', title: '%s', guid: '%s')" % (feedurl, entry['linkUrl'], entry['title'], entry['guid'])
+			if not ("srcname" in entry):
+				self.log.error("'srcname' not in entry for item from '%s' (contenturl: '%s', title: '%s', guid: '%s')" % (feedurl, entry['linkUrl'], entry['title'], entry['guid']))
+				return
 
 			authors     = [tmp['name'] for tmp in entry['authors'] if 'name' in tmp]
 
@@ -345,8 +352,13 @@ class SiteArchiver(LogBase.LoggerMixin):
 
 		while 1:
 			try:
+				self.db.get_session().flush()
+				if not (job.state == "fetching" or job.state == 'processing'):
+					self.log.critical("Someone else modified row first?")
 				job.state     = 'complete'
 				job.fetchtime = datetime.datetime.now()
+				self.db.get_session().commit()
+				self.log.info("Marked RSS job with id %s, url %s as complete (%s)!", job.id, job.url, job.state)
 				break
 
 			except sqlalchemy.exc.InvalidRequestError:
@@ -566,6 +578,8 @@ class SiteArchiver(LogBase.LoggerMixin):
 		job.is_text   = False
 		job.fetchtime = datetime.datetime.now()
 
+		self.log.info("Marked file job with id %s, url %s as complete!", job.id, job.url)
+
 		job.mimetype = response['mimeType']
 		self.db.get_session().commit()
 
@@ -587,7 +601,124 @@ class SiteArchiver(LogBase.LoggerMixin):
 	########################################################################################################################
 
 
+	def _get_task_internal(self, wattpad):
+		if wattpad:
+			filt = """
+			AND
+				(
+					web_pages.netloc = 'a.wattpad.com'
+				OR
+					web_pages.netloc = 'www.wattpad.com'
+				)
+			"""
+		else:
+			filt = """
+			AND NOT
+				(
+					web_pages.netloc = 'a.wattpad.com'
+				OR
+					web_pages.netloc = 'www.wattpad.com'
+				)
+			"""
+		# Hand-tuned query, I couldn't figure out how to
+		# get sqlalchemy to emit /exactly/ what I wanted.
+		# TINY changes will break the query optimizer, and
+		# the 10 ms query will suddenly take 10 seconds!
+		raw_query = text('''
+				UPDATE
+				    web_pages
+				SET
+				    state = 'fetching'
+				WHERE
+				    web_pages.id = (
+				        SELECT
+				            web_pages.id
+				        FROM
+				            web_pages
+				        WHERE
+				            web_pages.state = 'new'
+				        AND
+				            normal_fetch_mode = true
+				        AND
+				            web_pages.priority = (
+				               SELECT
+				                    min(priority)
+				                FROM
+				                    web_pages
+				                WHERE
+				                    state = 'new'::dlstate_enum
+				                AND
+				                    distance < 1000000
+				                AND
+				                    normal_fetch_mode = true
+				                AND
+				                    web_pages.ignoreuntiltime < current_timestamp + '5 minutes'::interval
+				                %s
+				            )
+				        AND
+				            web_pages.distance < 1000000
+				        AND
+				            web_pages.ignoreuntiltime < current_timestamp + '5 minutes'::interval
+				        %s
+				        LIMIT 1
+				    )
+				AND
+				    web_pages.state = 'new'
+				RETURNING
+				    web_pages.id;
+			''' % (filt, filt))
 
+
+		start = time.time()
+
+		sess = self.db.get_session()
+		while runStatus.run_state.value == 1:
+			try:
+				rid = sess.execute(raw_query).scalar()
+				sess.commit()
+				break
+			except sqlalchemy.exc.OperationalError:
+				delay = random.random()*2
+				# traceback.print_exc()
+				self.log.warn("Error marking job fetched (OperationalError)! Delaying %s.", delay)
+				time.sleep(delay)
+				sess.rollback()
+			except sqlalchemy.exc.InvalidRequestError:
+				traceback.print_exc()
+				self.log.warn("Error marking job fetched (InvalidRequestError)!")
+				sess.rollback()
+
+		# If we broke because a user-interrupt, we may not have a
+		# valid rid at this point.
+		if runStatus.run_state.value != 1:
+			return False
+
+		xqtim = time.time() - start
+
+		if not rid:
+			return False
+
+		self.log.info("Query execution time: %s ms. Job ID = %s", xqtim * 1000, rid)
+
+
+		job = self.db.get_session().query(self.db.WebPages) \
+			.filter(self.db.WebPages.id == rid)             \
+			.one()
+		self.db.get_session().flush()
+
+		if not job:
+			self.db.get_session().commit()
+			return False
+
+		if job.state != 'fetching':
+			self.db.get_session().commit()
+			sleeptime = random.random()
+			self.log.info("Wat? How did the query return?")
+			return False
+
+		self.db.get_session().commit()
+		self.log.info("Job for url: '%s' fetched. State: '%s'", job.url, job.state)
+		return job
 
 	def getTask(self, wattpad=False):
 		'''
@@ -598,106 +729,19 @@ class SiteArchiver(LogBase.LoggerMixin):
 		# self.db.get_session().begin()
 
 		# Try to get a task untill we are explicitly out of tasks,
-		# or we succeed.
-		while 1:
-			try:
-				if wattpad:
-					filt = """
-					AND
-						(
-							web_pages.netloc = 'a.wattpad.com'
-						OR
-							web_pages.netloc = 'www.wattpad.com'
-						)
-					"""
-				else:
-					filt = """
-					AND NOT
-						(
-							web_pages.netloc = 'a.wattpad.com'
-						OR
-							web_pages.netloc = 'www.wattpad.com'
-						)
-					"""
-				# Hand-tuned query, I couldn't figure out how to
-				# get sqlalchemy to emit /exactly/ what I wanted.
-				# TINY changes will break the query optimizer, and
-				# the 10 ms query will suddenly take 10 seconds!
-				raw_query = text('''
-						SELECT
-						    web_pages.id
-						FROM
-						    web_pages
-						WHERE
-						    web_pages.state = 'new'
-						AND
-						    normal_fetch_mode = true
-						AND
-						    web_pages.priority = (
-						       SELECT
-						            min(priority)
-						        FROM
-						            web_pages
-						        WHERE
-						            state = 'new'::dlstate_enum
-						        AND
-						            distance < 1000000
-						        AND
-						            normal_fetch_mode = true
-						        AND
-					                web_pages.ignoreuntiltime < current_timestamp + '5 minutes'::interval
-						        %s
-						    )
-						AND
-						    web_pages.distance < 1000000
-						AND
-					        web_pages.ignoreuntiltime < current_timestamp + '5 minutes'::interval
-						%s
-						LIMIT 1;
-					''' % (filt, filt))
+		return self._get_task_internal(wattpad)
 
-
-				start = time.time()
-				rid = self.db.get_session().execute(raw_query).scalar()
-				xqtim = time.time() - start
-
-				if not rid:
-					self.db.get_session().flush()
-					self.db.get_session().commit()
-					return False
-
-				# print("Raw ID From manual query:")
-				# print(rid)
-				# print()
-				self.log.info("Query execution time: %s ms", xqtim * 1000)
-
-
-				job = self.db.get_session().query(self.db.WebPages) \
-					.filter(self.db.WebPages.id == rid)             \
-					.one()
-
-				if job.state != 'new':
-					self.db.get_session().flush()
-					self.db.get_session().commit()
-					self.log.info("Someone else fetched that job first!")
-					continue
-
-				if not job:
-					self.db.get_session().flush()
-					self.db.get_session().commit()
-					return False
-
-				if job.state != "new":
-					raise ValueError("Wat?")
-				job.state = "fetching"
-
-				self.db.get_session().flush()
-				self.db.get_session().commit()
-				return job
-			except sqlalchemy.exc.OperationalError:
-				self.db.get_session().rollback()
-			except sqlalchemy.exc.InvalidRequestError:
-				self.db.get_session().rollback()
+		# while runStatus.run_state.value == 1:
+		# 	if self.job_get_lock:
+		# 		acq = self.job_get_lock.acquire(timeout=1)
+		# 		if not acq:
+		# 			continue
+		# 		try:
+		# 			return self._get_task_internal(wattpad)
+		# 		finally:
+		# 			self.job_get_lock.release()
+		# 	else:
+		# 		return self._get_task_internal(wattpad)
 
 
 	def do_job(self, job):
@@ -739,31 +783,47 @@ class SiteArchiver(LogBase.LoggerMixin):
 
 	def taskProcess(self, job_test=None):
 
-		if job_test:
-			job = job_test
-		else:
-			job = self.getTask()
-		if not job:
-			job = self.getTask(wattpad=True)
+		job = None
+		try:
+			if job_test:
+				job = job_test
+			else:
+				job = self.getTask()
 			if not job:
-				time.sleep(5)
-				return
+				job = self.getTask(wattpad=True)
+				if not job:
+					time.sleep(5)
+					return
 
-		if job.netloc in self.specialty_handlers:
-			self.special_case_handle(job)
-		else:
-			if job:
-				self.do_job(job)
+			if job.netloc in self.specialty_handlers:
+				self.log.info("Job %s for url %s has a specialty handler!", job, job.url)
+				self.special_case_handle(job)
+			else:
+				if job:
+					self.do_job(job)
+
+		except Exception:
+			err_f = os.path.join("./logs", "error - {}.txt".format(time.time()))
+			with open(err_f, "w") as fp:
+				if job:
+					fp.write("Job: {val}\n".format(val=job))
+					fp.write("Job-netloc: {val}\n".format(val=job.netloc))
+					fp.write("Job-url: {val}\n".format(val=job.url))
+					job.state = "error"
+					self.db.get_session().commit()
+
+				fp.write(traceback.format_exc())
 
 
+			for line in traceback.format_exc().split("\n"):
+				self.log.critical("%s", line.rstrip())
 
-	def synchronousJobRequest(self, url, ignore_cache=False):
-		"""
-		trigger an immediate, synchronous dispatch of a job for url `url`,
-		and return the fetched row upon completion
+	def get_row(self, url, distance=None, priority=None):
+		if distance == None:
+			distance = self.db.MAX_DISTANCE-2
 
-		"""
-		self.log.info("Manually initiated request for content at '%s'", url)
+		if priority == None:
+			priority = self.db.DB_REALTIME_PRIORITY
 
 		# Rather then trying to add, and rolling back if it exists,
 		# just do a simple check for the row first. That'll
@@ -785,7 +845,7 @@ class SiteArchiver(LogBase.LoggerMixin):
 			self.log.info("Item already exists in database.")
 		else:
 			self.log.info("Row does not exist in DB")
-			start = urllib.parse.urlsplit(url).netloc
+			url_netloc = urllib.parse.urlsplit(url).netloc
 
 			# New jobs are inserted in the "fetching" state since we
 			# don't want them to be picked up by the fetch engine
@@ -794,10 +854,10 @@ class SiteArchiver(LogBase.LoggerMixin):
 				state     = 'fetching',
 				url       = url,
 				starturl  = url,
-				netloc    = start,
-				distance  = self.db.MAX_DISTANCE-2,
+				netloc    = url_netloc,
+				distance  = distance,
 				is_text   = True,
-				priority  = self.db.DB_REALTIME_PRIORITY,
+				priority  = priority,
 				type      = "unknown",
 				fetchtime = datetime.datetime.now(),
 				)
@@ -822,31 +882,47 @@ class SiteArchiver(LogBase.LoggerMixin):
 				except sqlalchemy.exc.IntegrityError:
 					print("[synchronousJobRequest] -> Integrity error!")
 					self.db.get_session().rollback()
-					row =  query = self.db.get_session().query(self.db.WebPages) \
-						.filter(self.db.WebPages.url == url)               \
+					row = self.db.get_session().query(self.db.WebPages) \
+						.filter(self.db.WebPages.url == url)            \
 						.one()
 					self.db.get_session().commit()
 					break
+		return row
+
+
+	def synchronousDispatchPrefetched(self, url, parentjob, content, mimetype, filename="None"):
+		self.log.info("Manually initiated dispatch for prefetched-content at '%s'", url)
+		row = self.get_row(url)
+
+		fetcher = self.fetcher(self.ruleset, url, parentjob.starturl, job=row, cookie_lock=None, wg_handle=self.wg, response_queue=self.resp_q)
+		ret = fetcher.dispatchContent(content, filename, mimetype)
+		self.processResponse(row, ret)
+
+
+
+	def synchronousJobRequest(self, url, ignore_cache=False):
+		"""
+		trigger an immediate, synchronous dispatch of a job for url `url`,
+		and return the fetched row upon completion
+
+		"""
+		self.log.info("Manually initiated request for content at '%s'", url)
+
+		row = self.get_row(url)
 
 		thresh_text_ago = datetime.datetime.now() - datetime.timedelta(seconds=CACHE_DURATION)
 		thresh_bin_ago  = datetime.datetime.now() - datetime.timedelta(seconds=RSC_CACHE_DURATION)
 
-		# print("now                             ", datetime.datetime.now())
-		# print("row.fetchtime                   ", row.fetchtime)
-		# print("thresh_text_ago                 ", thresh_text_ago)
-		# print("thresh_bin_ago                  ", thresh_bin_ago)
-		# print("row.fetchtime > thresh_text_ago ", row.fetchtime > thresh_text_ago)
-		# print("row.fetchtime > thresh_bin_ago  ", row.fetchtime > thresh_bin_ago)
-
 		if ignore_cache:
 			self.log.info("Cache ignored due to override")
 		else:
-			if row.state == "complete" and row.fetchtime > thresh_text_ago:
-				self.log.info("Using cached fetch results as content was retreived within the last %s seconds.", RSC_CACHE_DURATION)
+			# if row.state == "complete" and row.fetchtime > thresh_text_ago:
+			# if row.state == "complete" and row.fetchtime > thresh_bin_ago and "text" not in row.mimetype.lower():
+			# 	self.log.info("Using cached fetch results as content was retreived within the last %s seconds.", CACHE_DURATION)
+			# 	return row
+			if row.state == "complete":
+				self.log.info("Using cached fetch results.")
 				self.log.info("dbid: %s", row.id)
-				return row
-			elif row.state == "complete" and row.fetchtime > thresh_bin_ago and "text" not in row.mimetype.lower():
-				self.log.info("Using cached fetch results as content was retreived within the last %s seconds.", CACHE_DURATION)
 				return row
 			else:
 				self.log.info("Item has exceeded cache time by text: %s, rsc: %s. (fetchtime: %s) Re-acquiring.", thresh_text_ago, thresh_bin_ago, row.fetchtime)

@@ -18,19 +18,22 @@ import WebMirror.database as db
 
 import WebMirror.OutputFilters.AmqpInterface
 import config
+import os.path
 
 
 from sqlalchemy.sql import text
 from sqlalchemy.sql import func
 import WebMirror.database as db
 
-PROCESSES = 24
-# PROCESSES = 4
+# PROCESSES = 24
+# PROCESSES = 16
+PROCESSES = 4
 # PROCESSES = 2
 # PROCESSES = 1
 
 # For synchronizing saving cookies to disk
 cookie_lock = multiprocessing.Lock()
+job_get_lock = multiprocessing.Lock()
 
 def halt_exc(x, y):
 	if runStatus.run_state.value == 0:
@@ -45,7 +48,7 @@ class RunInstance(object):
 		self.num = num
 		self.log = logging.getLogger("Main.Text.Web")
 
-		self.archiver = WebMirror.Engine.SiteArchiver(cookie_lock, response_queue=response_queue)
+		self.archiver = WebMirror.Engine.SiteArchiver(cookie_lock, job_get_lock=job_get_lock, response_queue=response_queue)
 		print("RunInstance %s MOAR init!" % num)
 
 
@@ -56,7 +59,6 @@ class RunInstance(object):
 		self.log.info("RunInstance starting!")
 		loop = 0
 		while 1:
-
 			if runStatus.run_state.value == 1:
 				self.do_task()
 			else:
@@ -67,6 +69,9 @@ class RunInstance(object):
 			if loop == 15:
 				loop = 0
 				self.log.info("Thread %s awake. Runstate: %s", self.num, runStatus.run_state.value)
+
+
+
 
 
 	@classmethod
@@ -127,7 +132,8 @@ class UpdateAggregator(object):
 			"RABBIT_VHOST" : config.C_RABBIT_VHOST,
 		}
 
-		self._amqpint = WebMirror.OutputFilters.AmqpInterface.RabbitQueueHandler(amqp_settings)
+		if config.C_DO_RABBIT:
+			self._amqpint = WebMirror.OutputFilters.AmqpInterface.RabbitQueueHandler(amqp_settings)
 
 		self.seen = {}
 
@@ -229,7 +235,8 @@ class UpdateAggregator(object):
 		self.links += 1
 
 		if target == "amqp_msg":
-			self.do_amqp(value)
+			if config.C_DO_RABBIT:
+				self.do_amqp(value)
 		elif target == "new_link":
 			self.do_link(value)
 		else:

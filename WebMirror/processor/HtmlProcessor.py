@@ -4,11 +4,11 @@ import copy
 import re
 import webcolors
 import urllib.parse
+import WebMirror.util.webFunctions
 
 import WebMirror.util.urlFuncs as urlFuncs
 from . import ProcessorBase
-
-
+import markdown
 
 
 ########################################################################################################################
@@ -38,6 +38,8 @@ class HtmlPageProcessor(ProcessorBase.PageProcessor):
 
 		self._tld           = set()
 		self._fileDomains   = set()
+
+		assert bool(pgContent) == True
 
 		self.content = pgContent
 		self.pageUrl = pageUrl
@@ -290,7 +292,10 @@ class HtmlPageProcessor(ProcessorBase.PageProcessor):
 		# Since the content we're extracting will be embedded into another page, we want to
 		# strip out the <body> and <html> tags. `unwrap()`  replaces the soup with the contents of the
 		# tag it's called on. We end up with just the contents of the <body> tag.
-		soup.body.unwrap()
+		if soup.body:
+			soup.body.unwrap()
+		elif soup.html:
+			soup.html.unwrap()
 
 		contents = soup.prettify()
 
@@ -333,10 +338,19 @@ class HtmlPageProcessor(ProcessorBase.PageProcessor):
 	def spotPatch(self, soup):
 
 		# Replace <pre> tags on wattpad.
-		wp_div = soup.find_all('div', class_="panel-reading")
-		for item in wp_div:
-			for pre in item.find_all("pre"):
-				pre.name = "div"
+		# wp_div = soup.find_all('div', class_="panel-reading")
+		# for item in wp_div:
+
+		# Fukkit, just nuke them in general
+		for pre in soup.find_all("pre"):
+			pre.name = "div"
+			formatted = markdown.markdown(pre.encode_contents().decode("utf-8"), extensions=["linkify"])
+			formatted = WebMirror.util.webFunctions.as_soup(formatted)
+			if formatted.find("html"):
+				formatted.html.unwrap()
+				formatted.body.unwrap()
+				pre.replace_with(formatted)
+			# print(pre)
 		return soup
 
 
@@ -359,8 +373,10 @@ class HtmlPageProcessor(ProcessorBase.PageProcessor):
 	# then decomposes all the tags in the `decompose` class variable, feeds the content through
 	# readability, and finally saves the processed HTML into the database
 	def extractContent(self):
-		self.log.info("Processing '%s' as HTML.", self.pageUrl)
-		soup = bs4.BeautifulSoup(self.content, "lxml")
+		self.log.info("Processing '%s' as HTML (size: %s).", self.pageUrl, len(self.content))
+		assert self.content
+		# print(type(self.content))
+		soup = WebMirror.util.webFunctions.as_soup(self.content)
 
 
 		# Allow child-class hooking
