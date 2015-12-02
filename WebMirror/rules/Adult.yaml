@@ -1,6 +1,7 @@
 type: western
 
 
+send_raw_feed: False
 baseUrl: [
 	'http://www.asstr.org/',
 	'http://pokegirls.org/',
@@ -74,7 +75,7 @@ badwords: [
 			'containxresults.html',
 			'/searchdisplay/',
 			'/blog_comment.php?',
-
+			'com/../',
 
 			# Booksie tags can apparently nest arbitrarily, so
 			# they basically take over the scraper if left unchecked.
@@ -84,6 +85,8 @@ badwords: [
 			# Not sure why there's so much gay content on ASSTR. Not my thing.
 			"/nifty/gay/",
 			"/nifty/bisexual/",
+			'/nifty/authors.html/gay/',
+			'/nifty/authors.html/bisexual/',
 
 			# Something is fucking up and generating double-slashes.
 			# They don't affect the server, but they'll duplicate content for

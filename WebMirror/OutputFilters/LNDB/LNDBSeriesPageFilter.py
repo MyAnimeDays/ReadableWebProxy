@@ -69,7 +69,7 @@ class LNDBSeriesPageFilter(WebMirror.OutputFilters.FilterBase.FilterBase):
 		self.content    = kwargs['pgContent']
 		self.type       = kwargs['type']
 
-		self.log.info("Processing RSS Item")
+		self.log.info("Processing LNDB Item")
 		super().__init__()
 
 		self.wg = WebMirror.util.webFunctions.WebGetRobust(logPath=self.loggerPath+".Web")
@@ -118,7 +118,7 @@ class LNDBSeriesPageFilter(WebMirror.OutputFilters.FilterBase.FilterBase):
 		# pprint.pprint(seriesmeta)
 
 		# print(seriesmeta)
-		pkt = msgpackers.sendSeriesInfoPacket(seriesmeta, beta=IS_BETA)
+		pkt = msgpackers.createSeriesInfoPacket(seriesmeta, beta=IS_BETA, matchAuthor=True)
 		self.amqp_put_item(pkt)
 
 

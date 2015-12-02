@@ -2,6 +2,8 @@
 
 type: eastern
 
+send_raw_feed: True
+
 baseUrl: [
 
 	'http://gekkahimethetranslation.wordpress.com',
@@ -295,6 +297,7 @@ baseUrl: [
 	'https://zmunjali.wordpress.com',
 	'https://zoengsaiwaa.wordpress.com',
 	'https://anonempireblog.wordpress.com',
+	'https://shinsoritranslations.wordpress.com',
 
 
 	 # Non explicitly wordpress blogs (that use wordpress internally)
@@ -377,6 +380,7 @@ baseUrl: [
 	'http://flowerbridgetoo.com',
 	'http://cnovels.bookbychapters.com',
 	'http://joeglens.com',
+	'http://rumanshi.com',
 
 	# OEL and translated.
 	'http://www.renegadesanctuary.com',
@@ -445,6 +449,7 @@ badwords: [
 
 	 # Wordpress has a new bullshit "make RSS for EVERYTHING" thing.
 	 '&author=',
+	 '/#comment-',
 	]
 
 decompose: [

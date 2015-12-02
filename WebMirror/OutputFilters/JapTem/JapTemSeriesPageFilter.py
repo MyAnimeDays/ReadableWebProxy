@@ -65,7 +65,7 @@ class JapTemSeriesPageProcessor(WebMirror.OutputFilters.FilterBase.FilterBase):
 		self.content    = kwargs['pgContent']
 		self.type       = kwargs['type']
 
-		self.log.info("Processing RSS Item")
+		self.log.info("Processing Japtem Item")
 
 		if "dosuper" in kwargs:
 			dosuper = kwargs['dosuper']
@@ -143,7 +143,7 @@ class JapTemSeriesPageProcessor(WebMirror.OutputFilters.FilterBase.FilterBase):
 		seriesmeta['sourcesite']  = 'JapTem'
 
 
-		meta_pkt = msgpackers.sendSeriesInfoPacket(seriesmeta)
+		meta_pkt = msgpackers.createSeriesInfoPacket(seriesmeta, matchAuthor=True)
 
 		extra = {}
 		extra['tags']     = tags

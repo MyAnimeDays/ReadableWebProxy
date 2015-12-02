@@ -5,6 +5,8 @@ allImages: True
 
 FOLLOW_GOOGLE_LINKS: True
 
+send_raw_feed: True
+
 baseUrl: [
 
     'http://aquarilasscenario.blogspot.com',
@@ -15,6 +17,7 @@ baseUrl: [
     'http://xhawk77x.blogspot.com',
     'http://thebathrobeknight.blogspot.com',
     'http://yukkuri-literature-service.blogspot.com',
+    'http://imperatorarcana.blogspot.com.au',
 
 ]
 

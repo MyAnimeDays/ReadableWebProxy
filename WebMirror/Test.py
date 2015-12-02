@@ -13,12 +13,17 @@ from WebMirror.Engine import SiteArchiver
 
 import sqlalchemy.exc
 import traceback
-import settings
+import os
+import config
+import calendar
+from sqlalchemy import and_
 from sqlalchemy.sql import text
+import WebMirror.OutputFilters.util.feedNameLut as feedNameLut
 import urllib.parse
 import urllib.error
 import WebMirror.rules
 import flags
+from sqlalchemy import or_
 import WebMirror.Exceptions
 
 def print_html_response(archiver, new, ret):
@@ -266,6 +271,135 @@ def clear_bad():
 
 
 
+def delete_comment_feed_items():
+
+	sess = db.get_session()
+	bad = sess.query(db.FeedItems) \
+			.filter(or_(
+				db.FeedItems.contenturl.like("%#comment-%"),
+				db.FeedItems.contenturl.like("%CommentsForInMyDaydreams%"),
+				db.FeedItems.contenturl.like("%www.fanfiction.net%"),
+				db.FeedItems.contenturl.like("%www.fictionpress.com%"),
+				db.FeedItems.contenturl.like("%www.booksie.com%")))    \
+			.order_by(db.FeedItems.contenturl) \
+			.all()
+
+	count = 0
+	for bad in bad:
+		print(bad.contenturl)
+
+		while bad.author:
+			bad.author.pop()
+		while bad.tags:
+			bad.tags.pop()
+		sess.delete(bad)
+		count += 1
+		if count % 1000 == 0:
+			print("Committing at %s" % count)
+			sess.commit()
+
+	print("Done. Committing...")
+	sess.commit()
+
+
+
+def update_feed_names():
+	for key, value in feedNameLut.mapper.items():
+		feed_items = db.get_session().query(db.FeedItems) \
+				.filter(db.FeedItems.srcname == key)    \
+				.all()
+		if feed_items:
+			for item in feed_items:
+				item.srcname = value
+			print(len(feed_items))
+			print(key, value)
+			db.get_session().commit()
+
+
+
+
+def rss_db_sync(target = None):
+	write_debug = True
+	if target:
+		config.C_DO_RABBIT = False
+		flags.RSS_DEBUG    = True
+		write_debug = False
+	else:
+		os.unlink('rss_filter_misses-1.txt')
+
+	import WebMirror.processor.RssProcessor
+	parser = WebMirror.processor.RssProcessor.RssProcessor(loggerPath   = "Main.RssDb",
+															pageUrl     = 'http://www.example.org',
+															pgContent   = '',
+															type        = 'application/atom+xml',
+															transfer    = False,
+															debug_print = True,
+															write_debug = write_debug)
+
+
+	print("Getting feed items....")
+
+	if target:
+		print("Limiting to '%s' source." % target)
+		feed_items = db.get_session().query(db.FeedItems) \
+				.filter(db.FeedItems.srcname == target)    \
+				.order_by(db.FeedItems.srcname)           \
+				.order_by(db.FeedItems.title)           \
+				.all()
+	else:
+		feed_items = db.get_session().query(db.FeedItems) \
+				.order_by(db.FeedItems.srcname)           \
+				.order_by(db.FeedItems.title)           \
+				.all()
+
+
+	print("Feed items: ", len(feed_items))
+
+	for item in feed_items:
+		ctnt = {}
+		ctnt['srcname']   = item.srcname
+		ctnt['title']     = item.title
+		ctnt['tags']      = item.tags
+		ctnt['linkUrl']   = item.contenturl
+		ctnt['guid']      = item.contentid
+		ctnt['published'] = calendar.timegm(item.published.timetuple())
+
+		# Pop()ed off in processFeedData().
+		ctnt['contents']  = 'wat'
+
+		try:
+			parser.processFeedData(ctnt, tx_raw=False)
+		except ValueError:
+			pass
+		# print(ctnt)
+
+def clear_blocked():
+	for ruleset in WebMirror.rules.load_rules():
+		if ruleset['netlocs'] and ruleset['badwords']:
+			# mask = [db.WebPages.url.like("%{}%".format(tmp)) for tmp in ruleset['badwords'] if not "%" in tmp]
+
+			for badword in ruleset['badwords']:
+				feed_items = db.get_session().query(db.WebPages)          \
+					.filter(db.WebPages.netloc.in_(ruleset['netlocs']))   \
+					.filter(db.WebPages.url.like("%{}%".format(badword))) \
+					.count()
+
+				if feed_items:
+					print("Have:  ", feed_items, badword)
+					feed_items = db.get_session().query(db.WebPages)          \
+						.filter(db.WebPages.netloc.in_(ruleset['netlocs']))   \
+						.filter(db.WebPages.url.like("%{}%".format(badword))) \
+						.delete(synchronize_session=False)
+					db.get_session().expire_all()
+
+				else:
+					print("Empty: ", feed_items, badword)
+			# print(mask)
+			# print(ruleset['netlocs'])
+			# print(ruleset['badwords'])
+	pass
+
+
 def decode(*args):
 	print("Args:", args)
 
@@ -273,8 +407,12 @@ def decode(*args):
 		op = args[0]
 		if op == "rss":
 			test_all_rss()
+		elif op == "rss-del-comments":
+			delete_comment_feed_items()
 		elif op == "db-fiddle":
 			db_fiddle()
+		elif op == "rss-name":
+			update_feed_names()
 		elif op == "longest-rows":
 			longest_rows()
 		elif op == "fix-null":
@@ -283,6 +421,10 @@ def decode(*args):
 			fix_tsv()
 		elif op == "clear-bad":
 			clear_bad()
+		elif op == "rss-db":
+			rss_db_sync()
+		elif op == "clear-blocked":
+			clear_blocked()
 		else:
 			print("ERROR: Unknown command!")
 
@@ -293,6 +435,8 @@ def decode(*args):
 		if op == "fetch":
 			print("Fetch command! Retreiving content from URL: '%s'" % tgt)
 			test(tgt)
+		elif op == "rss-db":
+			rss_db_sync(tgt)
 		elif op == "fetch-silent":
 			print("Fetch command! Retreiving content from URL: '%s'" % tgt)
 			test(tgt, debug=False)
@@ -311,11 +455,16 @@ if __name__ == "__main__":
 		print("you must pass a operation to execute!")
 		print("Current actions:")
 		print('	rss')
+		print('	rss-del-comments')
+		print('	rss-name')
 		print('	db-fiddle')
 		print('	longest-rows')
 		print('	fix-null')
 		print('	fix-tsv')
 		print('	clear-bad')
+		print('	clear-blocked')
+		print('	rss-db')
+		print('	rss-db {feedname}')
 		print('	fetch {url}')
 		print('	fetch-silent {url}')
 		print('	fetch-rss {url}')
