@@ -82,7 +82,7 @@ mapper = {
 	'cnovelproject.blogspot.com'                : 'The C-Novel Project',
 	'cnovels.bookbychapters.com'                : 'Lil\' Bliss Novels',
 	'cnovels2c.wordpress.com'                   : 'C Novels 2 C',
-	'cookiepastatranslations.wordpress.com'     : 'CookiePasta Translations',
+	'cookiepastatranslations.wordpress.com'     : 'CookiePasta',
 	'cosmictranslation.wordpress.com'           : 'Cosmic Translation',
 	'crimsonkisato.blogspot.com'                : 'Kisato\'s MLTs',
 	'ctrlalcala.wordpress.com'                  : 'CtrlAlcalá',
@@ -349,7 +349,7 @@ mapper = {
 	'tomorolls.wordpress.com'                   : 'Tomorolls',
 	'tony-yon-ka.blogspot.com'                  : 'Tony Yon Ka',
 	'tony-yon-ka.blogspot.com.au'               : 'Tony Yon Ka',
-	'totallyinsanetranlation.com'               : 'Totally Insane Tranlation',
+	'totallyinsanetranlation.com'               : 'Totally Insane Translation',
 	'totobro.com'                               : 'Totokk\'s Translations',
 	'tototrans.com'                             : 'Totokk\'s Translations',
 	'translatedbyaclown.wordpress.com'          : 'Translated by a Clown',
@@ -416,6 +416,7 @@ mapper = {
 	'zmunjali.wordpress.com'                    : 'Roxism HQ',
 	'www.suiminchuudoku.net'                    : '睡眠中毒',
 
+	'watdameow.wordpress.com'                   : 'Wat Da Meow',
 	'yellawtwl.com'                             : 'Wuxiaworld',
 	'yellawlaw.wordpress.com'                   : 'Wuxiaworld',
 
@@ -444,9 +445,12 @@ mapper = {
 	'machineslicedbread.wordpress.com'          : 'Machine Sliced Bread',
 	'holdxandclick.wordpress.com'               : 'Hold \'X\' and Click',
 	'watdameow.wordpress.com'                   : 'Wat Da Meow',
+	'omatranslations.wordpress.com'             : 'One Man Army Translations',
 
+	'turtleme.me'                               : 'The Beginning After The End',
+	'verathragna.wordpress.com'                 : 'Verathragana Stories',
 
-	'cavescans.com'                             : 'cavescans.com',
+	'cavescans.com'                             : 'CaveScans',
 
 	# Wat
 	# 'booksmoviesandbeyond.blogspot.com'         : 'booksmoviesandbeyond.blogspot.com',

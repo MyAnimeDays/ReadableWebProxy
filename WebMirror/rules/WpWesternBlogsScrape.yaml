@@ -72,7 +72,13 @@ baseUrl: [
 	'https://originnovels.wordpress.com',
 	'https://trueidentitynovel.wordpress.com',
 	'https://shinynewjustice.wordpress.com',
+	'http://www.bluephoenixnovel.com',
 
+	# REALLY custom theme, not sure how it'll parse.
+	'http://www.bladeofhearts.com',
+
+	'http://turtleme.me',
+	'https://verathragna.wordpress.com',
 
 	 ]
 

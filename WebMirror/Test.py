@@ -14,6 +14,7 @@ from WebMirror.Engine import SiteArchiver
 import sqlalchemy.exc
 import traceback
 import os
+import os.path
 import config
 import calendar
 from sqlalchemy import and_
@@ -318,7 +319,7 @@ def update_feed_names():
 
 
 
-def rss_db_sync(target = None):
+def rss_db_sync(target = None, recent=False):
 	write_debug = True
 	if target:
 		config.C_DO_RABBIT = False
@@ -346,6 +347,14 @@ def rss_db_sync(target = None):
 				.order_by(db.FeedItems.srcname)           \
 				.order_by(db.FeedItems.title)           \
 				.all()
+	elif recent:
+		cutoff = datetime.datetime.now() - datetime.timedelta(days=32)
+		feed_items = db.get_session().query(db.FeedItems) \
+				.filter(db.FeedItems.published > cutoff)  \
+				.order_by(db.FeedItems.srcname)           \
+				.order_by(db.FeedItems.title)             \
+				.all()
+
 	else:
 		feed_items = db.get_session().query(db.FeedItems) \
 				.order_by(db.FeedItems.srcname)           \
@@ -399,6 +408,24 @@ def clear_blocked():
 			# print(ruleset['badwords'])
 	pass
 
+def filter_links(path):
+	if not os.path.exists(path):
+		raise IOError("File at path '%s' doesn't exist!" % path)
+
+	with open(path, "r") as fp:
+		urls = fp.readlines()
+	urls = [item.strip() for item in urls if item.strip()]
+
+	# print(urls)
+
+	havestarts = []
+	for ruleset in WebMirror.rules.load_rules():
+		if ruleset['starturls']:
+			havestarts += ruleset['starturls']
+
+	for item in urls:
+		if item not in havestarts:
+			print(item)
 
 def decode(*args):
 	print("Args:", args)
@@ -423,6 +450,8 @@ def decode(*args):
 			clear_bad()
 		elif op == "rss-db":
 			rss_db_sync()
+		elif op == "rss-recent":
+			rss_db_sync(recent=True)
 		elif op == "clear-blocked":
 			clear_blocked()
 		else:
@@ -443,6 +472,10 @@ def decode(*args):
 		elif op == "fetch-rss":
 			print("Fetch command! Retreiving content from URL: '%s'" % tgt)
 			test(tgt, debug=False, rss_debug=True)
+
+		elif op == "filter-new-links":
+			print("Filtering new links from file: '%s'" % tgt)
+			filter_links(tgt)
 
 		else:
 			print("ERROR: Unknown command!")
@@ -468,6 +501,7 @@ if __name__ == "__main__":
 		print('	fetch {url}')
 		print('	fetch-silent {url}')
 		print('	fetch-rss {url}')
+		print('	filter-new-links {file-path}')
 		sys.exit(1)
 
 	decode(*sys.argv[1:])
