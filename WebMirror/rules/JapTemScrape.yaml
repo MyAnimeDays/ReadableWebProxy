@@ -32,8 +32,8 @@ badwords: [
 			"viewforum.php",
 			"/wp-login.php",
 			"/#comments",      # Ignore in-page anchor tags
+			"#comment-",
 			"/staff/"]
-
 
 
 decomposeBefore: [
@@ -81,3 +81,21 @@ decompose: [
 ]
 
 stripTitle: ['Japtem - ']
+
+# DELETE FROM
+#     feed_authors
+# WHERE
+#     article_id IN (
+#         SELECT id FROM feeds WHERE title LIKE 'By: %'
+#     )
+# ;
+
+# DELETE FROM
+#     feed_tags
+# WHERE
+#     article_id IN (
+#         SELECT id FROM feeds WHERE title LIKE 'By: %'
+#     )
+# ;
+# DELETE from feeds WHERE title LIKE 'By: %' AND srcname='Japtem';
+

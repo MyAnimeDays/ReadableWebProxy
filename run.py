@@ -1,5 +1,6 @@
 #!flask/bin/python
 
+import settings
 if __name__ == "__main__":
 	import logSetup
 	logSetup.initLogging()
@@ -15,6 +16,7 @@ import calendar
 
 # import FeedFeeder.FeedFeeder
 import flags
+
 
 
 
@@ -40,6 +42,9 @@ def startBackgroundThread():
 
 
 def go():
+	flags.IS_FLASK = True
+	settings.MAX_DB_SESSIONS = 10
+
 	import sys
 
 	if not "debug" in sys.argv:
@@ -49,13 +54,9 @@ def go():
 	if "debug" in sys.argv:
 		print("Running in debug mode.")
 		app.run(host='0.0.0.0', port=5001)
-	elif "all" in sys.argv:
-		print("Running in all IP mode.")
-		# app.run(host='0.0.0.0', port=5001)
-		# app.run(host='0.0.0.0', port=5001, threaded=True)
-		app.run(host='0.0.0.0', port=5001, processes=10)
 	else:
 		print("Running in normal mode.")
+		# app.run(host='0.0.0.0', port=5001, processes=10)
 		app.run(host='0.0.0.0', port=5001, threaded=True)
 
 

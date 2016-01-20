@@ -66,6 +66,7 @@ baseUrl: [
 	 "http://www.pridesfamiliarsmaidens.com",
 	 "https://silvalau.wordpress.com",
 	 'https://circleofshards.wordpress.com',
+	 'https://youkoadvent.wordpress.com',
 
 	'https://manatankmagus.wordpress.com',
 	'https://rancerqz.wordpress.com',
@@ -73,6 +74,8 @@ baseUrl: [
 	'https://trueidentitynovel.wordpress.com',
 	'https://shinynewjustice.wordpress.com',
 	'http://www.bluephoenixnovel.com',
+
+	'http://lsdell.com',
 
 	# REALLY custom theme, not sure how it'll parse.
 	'http://www.bladeofhearts.com',

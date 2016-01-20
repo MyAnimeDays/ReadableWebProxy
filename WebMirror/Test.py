@@ -17,13 +17,13 @@ import os
 import os.path
 import config
 import calendar
-from sqlalchemy import and_
-from sqlalchemy.sql import text
+import json
 import WebMirror.OutputFilters.util.feedNameLut as feedNameLut
 import urllib.parse
 import urllib.error
 import WebMirror.rules
 import flags
+import WebMirror.SiteSync.fetch
 from sqlalchemy import or_
 import WebMirror.Exceptions
 
@@ -317,16 +317,69 @@ def update_feed_names():
 			db.get_session().commit()
 
 
+# Re-order the missed file list by order of misses.
+def sort_json(json_name):
+	with open(json_name) as fp:
+		cont = fp.readlines()
+	print("Json file has %s lines." % len(cont))
 
+	data = {}
+	for line in cont:
+		val = json.loads(line)
+		name = val['SourceName']
+		if not name in data:
+			data[name] = []
+
+		data[name].append(val)
+	out = []
+	for key in data:
+
+		out.append((data[key][0]['Have Func'], len(data[key]), data[key]))
+
+	out.sort(key=lambda x: (x[0], x[1]*-1))
+	out.sort(key=lambda x: (x[1]*-1))
+
+	key_order = [
+		"Have Func",
+		"SourceName",
+		"Title",
+		"Tags",
+		"Vol",
+		"Chp",
+		"Frag",
+		"Postfix",
+		"Feed URL",
+		"GUID",
+	]
+
+	outf = json_name+".pyout"
+	try:
+		os.unlink(outf)
+	except FileNotFoundError:
+		pass
+
+	with open(outf, "w") as fp:
+		for item in out:
+			# print(item[1])
+			for value in item[2]:
+				for key in key_order:
+					fp.write("%s, " % ((key, value[key]), ))
+				fp.write("\n")
 
 def rss_db_sync(target = None, recent=False):
+
+	json_file = 'rss_filter_misses-1.json'
+
 	write_debug = True
 	if target:
 		config.C_DO_RABBIT = False
 		flags.RSS_DEBUG    = True
 		write_debug = False
 	else:
-		os.unlink('rss_filter_misses-1.txt')
+		try:
+			os.unlink(json_file)
+		except FileNotFoundError:
+			pass
 
 	import WebMirror.processor.RssProcessor
 	parser = WebMirror.processor.RssProcessor.RssProcessor(loggerPath   = "Main.RssDb",
@@ -381,6 +434,8 @@ def rss_db_sync(target = None, recent=False):
 		except ValueError:
 			pass
 		# print(ctnt)
+	if target == None:
+		sort_json(json_file)
 
 def clear_blocked():
 	for ruleset in WebMirror.rules.load_rules():
@@ -427,6 +482,17 @@ def filter_links(path):
 		if item not in havestarts:
 			print(item)
 
+def missing_lut():
+	import WebMirror.OutputFilters.util.feedNameLut as fnl
+	rules = WebMirror.rules.load_rules()
+	feeds = [item['feedurls'] for item in rules]
+	feeds = [item for sublist in feeds for item in sublist]
+	# feeds = [urllib.parse.urlsplit(tmp).netloc for tmp in feeds]
+	for feed in feeds:
+		if not fnl.getNiceName(feed):
+			print("Missing: ", urllib.parse.urlsplit(feed).netloc)
+	pass
+
 def decode(*args):
 	print("Args:", args)
 
@@ -434,6 +500,8 @@ def decode(*args):
 		op = args[0]
 		if op == "rss":
 			test_all_rss()
+		if op == "sync":
+			WebMirror.SiteSync.fetch.fetch_other_sites()
 		elif op == "rss-del-comments":
 			delete_comment_feed_items()
 		elif op == "db-fiddle":
@@ -444,12 +512,16 @@ def decode(*args):
 			longest_rows()
 		elif op == "fix-null":
 			fix_null()
+		elif op == "missing-lut":
+			missing_lut()
 		elif op == "fix-tsv":
 			fix_tsv()
 		elif op == "clear-bad":
 			clear_bad()
 		elif op == "rss-db":
 			rss_db_sync()
+		elif op == "sort-json":
+			sort_json('rss_filter_misses-1.json')
 		elif op == "rss-recent":
 			rss_db_sync(recent=True)
 		elif op == "clear-blocked":
@@ -487,15 +559,19 @@ if __name__ == "__main__":
 
 		print("you must pass a operation to execute!")
 		print("Current actions:")
+		print('	clear-bad')
+		print('	clear-blocked')
+		print('	db-fiddle')
+		print('	fix-null')
+		print('	fix-tsv')
+		print('	longest-rows')
+		print('	missing-lut')
 		print('	rss')
 		print('	rss-del-comments')
 		print('	rss-name')
-		print('	db-fiddle')
-		print('	longest-rows')
-		print('	fix-null')
-		print('	fix-tsv')
-		print('	clear-bad')
-		print('	clear-blocked')
+		print('	rss-recent')
+		print('	sort-json')
+		print('	sync')
 		print('	rss-db')
 		print('	rss-db {feedname}')
 		print('	fetch {url}')
@@ -506,5 +582,6 @@ if __name__ == "__main__":
 
 	decode(*sys.argv[1:])
 	# test("http://www.royalroadl.com/fiction/1484")
+
 
 

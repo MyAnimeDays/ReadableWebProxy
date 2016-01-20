@@ -5,10 +5,11 @@ type: eastern
 send_raw_feed: True
 
 baseUrl: [
-
+	'https://fgilantranslations.wordpress.com',
 	'http://gekkahimethetranslation.wordpress.com',
 	'http://gravitytranslations.wordpress.com',
 	'http://kobatochandaisuki.wordpress.com',
+	'http://kobatochandaisuki.com',
 	'http://lagnos.wordpress.com',
 	'http://nanodesutranslations.wordpress.com',
 	'http://orangeblossomdreams.wordpress.com',
@@ -23,6 +24,7 @@ baseUrl: [
 	'https://9ethtranslations.wordpress.com',
 	'https://addnewtab.wordpress.com',
 	'https://aelyiyue.wordpress.com',
+	'https://chubbycheeksthoughts.wordpress.com',
 	'https://aflappyteddybird.wordpress.com',
 	'https://alcsel.wordpress.com',
 	'https://aldnoahextrathetranslation.wordpress.com',
@@ -37,7 +39,19 @@ baseUrl: [
 	'https://asherahbluenotebook.wordpress.com',
 	'https://asiancult.wordpress.com',
 	'https://asylumtranslations.wordpress.com',
+	'https://megacarp.wordpress.com',
+	'https://kongetsume.wordpress.com',
+	'https://novelaffairs.wordpress.com',
+	'https://intensedessugar.wordpress.com',
+	'https://willfulcasual.wordpress.com',
+	'https://mythicalpagoda.wordpress.com',
+	'https://atentranslationswordpresscom.wordpress.com',
 	'https://azurro4cielo.wordpress.com',
+	'https://bakapervert.wordpress.com',
+	'https://distractedchinese.wordpress.com',
+	'https://jammerg55.wordpress.com',
+	'https://amber99y.wordpress.com',
+	'https://tthcs.wordpress.com',
 	'https://bcat00.wordpress.com',
 	'https://bearbeartranslations.wordpress.com',
 	'https://beehugger.wordpress.com',
@@ -73,6 +87,7 @@ baseUrl: [
 	'https://diwasteman.wordpress.com',
 	'https://dlingson.wordpress.com',
 	'https://dorayakiz.wordpress.com',
+	'https://dramasbooksandtea.wordpress.com',
 	'https://dreamavenuee.wordpress.com',
 	'https://durandaru.wordpress.com',
 	'https://durasama.wordpress.com',
@@ -100,6 +115,7 @@ baseUrl: [
 	'https://grimgalthetranslation.wordpress.com',
 	'https://hajiko.wordpress.com',
 	'https://hamster428.wordpress.com',
+	'https://hanagiku.wordpress.com',
 	'https://heartcrusadescans.wordpress.com',
 	'https://heavenlystartranslations.wordpress.com',
 	'https://hellotranslations.wordpress.com',
@@ -152,6 +168,7 @@ baseUrl: [
 	'https://lorcromwell.wordpress.com',
 	'https://lordofscrubs.wordpress.com',
 	'https://loveyouthetranslation.wordpress.com',
+	'https://luentranslations.wordpress.com',
 	'https://lygartranslations.wordpress.com',
 	'https://lylisasmodeus.wordpress.com',
 	'https://machineslicedbread.wordpress.com',
@@ -192,12 +209,14 @@ baseUrl: [
 	'https://otomerevo.wordpress.com',
 	'https://otterspacetranslation.wordpress.com',
 	'https://pandafuqtranslations.wordpress.com',
+	'https://patriarchreliance.wordpress.com',
 	'https://peatranslation.wordpress.com',
 	'https://pikatranslations.wordpress.com',
 	'https://pippisite.wordpress.com',
 	'https://pirateyoshi.wordpress.com',
 	'https://plainlybored.wordpress.com',
 	'https://polyphonicstory.wordpress.com',
+	'https://priddles.wordpress.com',
 	'https://pummels.wordpress.com',
 	'https://putttytranslations.wordpress.com',
 	'https://qualideascumthetranslation.wordpress.com',
@@ -296,12 +315,8 @@ baseUrl: [
 	'https://zentranslations.wordpress.com',
 	'https://zmunjali.wordpress.com',
 	'https://zoengsaiwaa.wordpress.com',
-	'https://anonempireblog.wordpress.com',
-	'https://shinsoritranslations.wordpress.com',
-
 
 	 # Non explicitly wordpress blogs (that use wordpress internally)
-	'http://avertranslation.com',
 	'http://giraffecorps.liamak.net',
 	# The wordpress address redirects to the plain URL,
 	'http://gravitytranslations.com',
@@ -312,12 +327,15 @@ baseUrl: [
 	'http://nightbreezetranslations.com',
 	'http://www.lingson.com',
 	'http://shintranslations.com',
+	'http://catingham-palace.com',
 	'http://risingdragons.co',
 	'http://www.translationnations.com',
 	'http://www.wuxiatranslations.com',
 	'http://pandatranslations.net',
 	'http://shiroyukitranslations.com',
 	'http://wuxiaworld.com',
+	'http://www.wuxiaworld.com',
+	'http://rancerqz.com',
 	'http://thundertranslations.com',
 	'http://pikatranslations.com',
 	'http://ruzetranslations.org',
@@ -325,8 +343,14 @@ baseUrl: [
 	'http://thyaeriatranslations.com',
 	'http://www.deadlylegends.com/translations/',
 	'https://wuxiaheroes.com',
+	'https://www.wuxiaheroes.com',
 	'http://youjinsite.com',
 	'http://www.deadlylegends.com/translations',
+	'http://lightnovelstranslations.com',
+	'http://grimdarkztranslations.com',
+	'http://aresnovels.com',
+	'http://avertranslation.org',
+	'http://eccentrictranslations.com',
 
 	 # This is WP, but it uses an custom theme I haven't tested against.
 	'http://arkmachinetranslations.com',
@@ -348,6 +372,7 @@ baseUrl: [
 	'https://darktranslations.wordpress.com',
 	"http://moonbunnycafe.com",
 	'https://mechamushroomtranslations.wordpress.com',
+	'http://helidwarf.com',
 
 
 	'http://77novel.com',
@@ -389,6 +414,51 @@ baseUrl: [
 
 	# OEL and translated.
 	'http://www.renegadesanctuary.com',
+
+
+	# New:
+	'http://www.zeonic-republic.net',
+	'http://www.pegasusfarts.com',
+	'http://lasciviousimouto.wordpress.com',
+	'http://noveltrans.wordpress.com',
+	'http://asiandramalife.wordpress.com',
+	'http://firebirdsnest.wordpress.com',
+	'http://nanjamora.wordpress.com',
+	'http://catinghampalace.wordpress.com',
+	'http://konobuta.wordpress.com',
+	'http://crystalraindescends.wordpress.com',
+	'http://sut3kii.wordpress.com',
+	'http://saibaichiroku.wordpress.com',
+	'http://silenttl.wordpress.com',
+	'http://casprojectsite.wordpress.com',
+	'http://frostfire10.wordpress.com',
+	'http://walkingthestorm.wordpress.com',
+	'http://zetianjitranslation.wordpress.com',
+	'http://jtranslashions.wordpress.com',
+	'http://pizzasandcoke.wordpress.com',
+	'http://monktranslation.wordpress.com',
+	'http://soojiki.wordpress.com',
+	'http://morrighansucks.wordpress.com',
+	'http://crackofdawntranslations.wordpress.com',
+	'http://lunaris111.wordpress.com',
+	'http://indoromance.com',
+	'http://liveandlearn88.com',
+	'http://opinisaya.com',
+	'http://rumanshi.com',
+	'http://trinityarchive.com',
+	'http://volaretranslations.com',
+	'http://walkthejianghu.com',
+	'http://www.arantranslations.com',
+	'http://heroicnovels.com',
+	'http://www.novelsaga.com',
+	'http://www.shinsori.com',
+
+	# Very custom theme:
+	'http://weaboodesu.com',
+
+	# Private:
+	# 'koongkoongtranslations.com',
+
 
 	]
 

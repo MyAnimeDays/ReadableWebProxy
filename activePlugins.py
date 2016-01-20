@@ -52,21 +52,39 @@ import WebMirror.OutputFilters.WattPad.WattPadSeriesPageFilter
 import WebMirror.OutputFilters.JapTem.JapTemSeriesPageFilter
 import WebMirror.OutputFilters.Booksie.BooksieSeriesPageFilter
 import WebMirror.OutputFilters.LNDB.LNDBSeriesPageFilter
+import WebMirror.OutputFilters.NovelUpdates.NUSeriesUpdateFilter
+import WebMirror.OutputFilters.NovelUpdates.NUSeriesPageFilter
 
 FILTERS = [
 	WebMirror.OutputFilters.RoyalRoadL.RRLSeriesPageFilter.RRLSeriesPageProcessor,
 	WebMirror.OutputFilters.RoyalRoadL.RRLSeriesUpdateFilter.RRLSeriesUpdateFilter,
+
 	WebMirror.OutputFilters.JapTem.JapTemSeriesPageFilter.JapTemSeriesPageProcessor,
 	WebMirror.OutputFilters.WattPad.WattPadSeriesPageFilter.WattPadSeriesPageFilter,
 	WebMirror.OutputFilters.Booksie.BooksieSeriesPageFilter.BooksieSeriesPageProcessor,
 	WebMirror.OutputFilters.LNDB.LNDBSeriesPageFilter.LNDBSeriesPageFilter,
+
+	WebMirror.OutputFilters.NovelUpdates.NUSeriesUpdateFilter.NUSeriesUpdateFilter,
+	WebMirror.OutputFilters.NovelUpdates.NUSeriesPageFilter.NUSeriesPageProcessor,
+]
+
+import WebMirror.PreProcessors.LiveJournalPreprocess
+import WebMirror.PreProcessors.RedditPreprocess
+import WebMirror.PreProcessors.WattPadPreprocess
+import WebMirror.PreProcessors.TgStoryTimePreprocess
+
+PREPROCESSORS = [
+	WebMirror.PreProcessors.LiveJournalPreprocess.LJPreprocessor,
+	WebMirror.PreProcessors.RedditPreprocess.RedditPreprocessor,
+	WebMirror.PreProcessors.WattPadPreprocess.WattPadPreprocessor,
+	WebMirror.PreProcessors.TgStoryTimePreprocess.TgStoryTimePreprocessor,
 ]
 
 
-import WebMirror.OutputFilters.WattPad.WattPadInit
+# import WebMirror.OutputFilters.WattPad.WattPadInit
 
 INIT_CALLS = [
-	WebMirror.OutputFilters.WattPad.WattPadInit.init_call
+	#WebMirror.OutputFilters.WattPad.WattPadInit.init_call
 ]
 
 print("Processing plugins: %s, active filters: %s, trigger plugins: %s" % (len(PLUGINS), len(FILTERS), len(scrapePlugins)))

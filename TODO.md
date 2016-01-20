@@ -2,14 +2,78 @@
  - Figure out how to selectively preserve some classes (I want to allow fontawesome content)
  - Search for proximate words.
  - "https://xxjohnsmithxx.wordpress.com", parser
+   
+
+
+fiddle with tsvector threshold
+touch scrollbar?
+
+http://soratranslations.com/?p=202
+http://lightnovelstranslations.com/
+ 
+colspan? http://royalroadl.com/forum/showthread.php?tid=47458
+ 
+smartquotes in tl geoup name
+machine sliced bread link unwrapper
+https://www.wlnupdates.com/series-id/34541/
+
+last release time on group page
+
+Demons of Astlan series (summoned OP mc, awesome world building)
+Lost on Jord series (summoned non-op, pioneering journey)
+The Tome of Bill series (vampire action horror comedy, good world building)
+The Spellmonger series (massive, pure fantasy, awesome worldbuilding)
+Daniel Black series (adult themed OP summoned hero, awesome world building)
+Portals of Infinity series (adult themed OP world hopping hero)
+ 
+
+
+## Todo:
+www.aoitenshi.com
+
+# Blogger:
+www.aresnovels.com
+www.pegasusfarts.com
+novel.oddsquad.org
+
+# Custom: 
+www.gundamwingtales.com
+
+# Scans?
+
+# ..... Anime?
+mazuisubs.com
+
+
+blcxtranslations.github.io
+cautrs.com
+ckmscans.halofight.com
+justblthings.weebly.com
+
+minashiro.co.vu
+novel.oddsquad.org
+quartia.dreamwidth.org
+
+
+# Scanlators: (?)
+ckmscans.halofight.com
+egscans.com
+egscans.com 
+hotchocolatescans.com
+riceballicious.info
+september.strawberrywine.org
+www.world-three.org
+www.zeonic-republic.net
+
+## Not WP:
+http://www.aoitenshi.com
+http://www.gundamwingtales.com
 
  
- 
-http://erolns.blogspot.com/feeds/posts/default 
+
 
 http://laute.tumblr.com
-http://www.deadlylegends.com/translations
-http://www.pegasusfarts.com
+http://www.deadlylegends.com/translations 
 
 fictionmania js links 
  
@@ -37,6 +101,14 @@ rules comditionally disable tld permutatiom
  ## - Multithreaded server fails because DB interface is shared across threads.
  ## - Validate unmatched keys in rules so that key-typos don't silently break things.
  ## - funky tables outlines
+ ## - Add Tumblr/Livejournal support already!
+ ## "A Wild Last Boss Appeared" it has 3 chapters translated on Oniichanyamete.
+ ## http://raisingthedead.ninja/2015/12/30/when-i-returned-home-what-i-found-was-fantasy-2-04/
+ ## https://lygartranslations.wordpress.com/novels/himekishi-ga-classmate/   'LygarTranslations'
+ ## https://kumaotou.wordpress.com/
+ ## http://lsdell.com/table-of-contents/  'Taint'
+ ## https://watdameow.wordpress.com/      'Wat Da Meow'
+ ## MovelUpdates feed system
 
 
 Check these URLs:
@@ -57,78 +129,13 @@ https://drive.google.com/folderview?id=0B4ar77TfWmQTMTFnQmNrZTRrZUU&usp=sharing
 https://www.reddit.com/user/OrganicDinosaur
 
 
-## http://agirlinjapan.tumblr.com
-## http://applepling.tumblr.com
-http://blastron01.tumblr.com
-## http://cacatuasulphureacitrinocristata.tumblr.com
-http://chilly-territory.tumblr.com
-http://closure-of-yellow.tumblr.com
-http://cocobees.tumblr.com
-http://fierydragonbreath.tumblr.com
-http://gomigeemu.tumblr.com
-http://honyakusha-eri.tumblr.com
-http://janeypeixes.tumblr.com
-http://laute.tumblr.com
-http://lemoninagin.tumblr.com
-http://lunacy-of-venomania.tumblr.com
-http://messier-45.tumblr.com
-http://mikagura-scans.tumblr.com
-http://misarumi.tumblr.com
-http://necromancyscans.tumblr.com
-http://owari-owari.tumblr.com
-http://raspomme.tumblr.com
-http://renna-translations.tumblr.com
-http://shuuen-scans.tumblr.com
-http://soul-eater-novel.tumblr.com
-http://theyseemewhalin.tumblr.com
-http://trashbunny.tumblr.com
-http://vgperson.tumblr.com
-http://wiegenlied-of-green.tumblr.com
-
-
-http://adarshan-novels.livejournal.com
-http://anni-fiesta.livejournal.com
-http://black-freya.livejournal.com
-http://inchoate-oeuvre.livejournal.com
-http://keseranpasaran.livejournal.com
-http://luxiufer.livejournal.com
-http://mittens-220.livejournal.com
-http://orenotokei.livejournal.com
-http://panisal.livejournal.com
-http://sinmay.livejournal.com
-http://sl-llian.livejournal.com
-http://tsukilining.livejournal.com
-http://yuujinchou.livejournal.com
-http://zhuanji.livejournal.com
-
-
-
-
-Blogger: 
-http://www.pegasusfarts.com
-http://novel.oddsquad.org
-
-
-Scanlators: (?)
-http://hotchocolatescans.com
-http://ckmscans.halofight.com
-http://egscans.com
-http://riceballicious.info
-http://september.strawberrywine.org
-http://www.zeonic-republic.net
-
-## Not WP:
-http://www.aoitenshi.com
-http://www.gundamwingtales.com
-
-
-Gone?:
-http://www.studentnotes.ca
-http://mousou-haven.com
-http://minashiro.co.vu
-
-Korean drama blog site?:
-http://koalasplayground.com
 
 
 ## http://koongkoongtranslations.com/ - Private
+
+
+
+## letters on tl group browse page
+## allow multiple homepage enteies
+## Livejournal prefilter to poke through adult only bs ->
+##     Generalize to arbitrary prefiltering-system with netloc-based callees

@@ -4,6 +4,8 @@ import sys
 import multiprocessing
 import threading
 
+from settings import MAX_DB_SESSIONS
+
 DB_REALTIME_PRIORITY =    1 * 1000
 DB_HIGH_PRIORITY     =   10 * 1000
 DB_MED_PRIORITY      =   50 * 1000
@@ -39,9 +41,13 @@ from sqlalchemy.ext.associationproxy import association_proxy
 # from  sqlalchemy.sql.expression import func
 # from citext import CIText
 
+from sqlalchemy_utils.types import TSVectorType
+from sqlalchemy_searchable import make_searchable
+
 # Patch in knowledge of the citext type, so it reflects properly.
 from sqlalchemy.dialects.postgresql.base import ischema_names
 import citext
+import queue
 import datetime
 from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy.dialects.postgresql import JSON
@@ -53,11 +59,16 @@ from settings import DATABASE_DB_NAME       as C_DATABASE_DB_NAME
 from settings import DATABASE_USER          as C_DATABASE_USER
 from settings import DATABASE_PASS          as C_DATABASE_PASS
 
+from flask import g
+import flags
+
 SQLALCHEMY_DATABASE_URI = 'postgresql://{user}:{passwd}@{host}:5432/{database}'.format(user=C_DATABASE_USER, passwd=C_DATABASE_PASS, host=C_DATABASE_IP, database=C_DATABASE_DB_NAME)
 
 
 SESSIONS = {}
-ENGINES = {}
+ENGINES  = {}
+POOL    = None
+
 
 ENGINE_LOCK = multiprocessing.Lock()
 SESSION_LOCK = multiprocessing.Lock()
@@ -79,7 +90,31 @@ def get_engine():
 
 	return ENGINES[csid]
 
+def checkout_session():
+	global POOL
+	if not POOL:
+		print("Creating pool")
+		POOL = queue.Queue()
+		for dummy_x in range(10):
+			POOL.put(scoped_session(sessionmaker(bind=get_engine(), autoflush=False, autocommit=False))())
+
+
+	cpid = multiprocessing.current_process().name
+	ctid = threading.current_thread().name
+	csid = "{}-{}".format(cpid, ctid)
+
+	print("Getting DB session (avail: %s, ID: '%s')" % (POOL.qsize(), csid))
+	sess = POOL.get()
+	return sess
+
+def release_session(session):
+	POOL.put(session)
+	print("Returning db handle to pool. Handles available: %s" % (POOL.qsize(), ))
+
 def get_session():
+	if flags.IS_FLASK:
+		return g.session
+
 	cpid = multiprocessing.current_process().name
 	ctid = threading.current_thread().name
 	csid = "{}-{}".format(cpid, ctid)
@@ -97,8 +132,8 @@ def get_session():
 			print("Creating database interface:", SESSIONS[csid])
 
 			# Delete the session that's oldest.
-			if len(SESSIONS) > 50:
-				print("WARN: More then 50 active sessions! Deleting oldest session to prevent session contention.")
+			if len(SESSIONS) > MAX_DB_SESSIONS:
+				print("WARN: More then %s active sessions! Deleting oldest session to prevent session contention." % MAX_DB_SESSIONS)
 				maxsz = sys.maxsize
 				to_delete = None
 				for key, value in SESSIONS.items():
@@ -131,18 +166,20 @@ def delete_session():
 
 
 Base = declarative_base()
+make_searchable()
 
 dlstate_enum   = ENUM('new', 'fetching', 'processing', 'complete', 'error', 'removed', name='dlstate_enum')
 itemtype_enum  = ENUM('western', 'eastern', 'unknown',            name='itemtype_enum')
 
+
 class WebPages(Base):
 	__tablename__ = 'web_pages'
-	id                = Column(Integer, primary_key = True)
+	id                = Column(Integer, primary_key = True, index = True)
 	state             = Column(dlstate_enum, default='new', index=True, nullable=False)
 	errno             = Column(Integer, default='0')
 	url               = Column(Text, nullable = False, index = True, unique = True)
 	starturl          = Column(Text, nullable = False)
-	netloc            = Column(Text, nullable = False)
+	netloc            = Column(Text, nullable = False, index = True)
 
 	# Foreign key to the files table if needed.
 	file              = Column(Integer, ForeignKey('web_files.id'))
@@ -172,10 +209,56 @@ class WebPages(Base):
 	# fetch scheduling to operate within the same database.
 	normal_fetch_mode = Column(Boolean, default=True)
 
-	tsv_content       = Column(TSVECTOR)
-
+	tsv_content       = Column(TSVectorType('content'))
 
 	file_item         = relationship("WebFiles")
+
+	previous_release  = Column(Integer, ForeignKey('web_page_history.id'))
+
+
+
+
+class WebPageHistory(Base):
+	__tablename__ = 'web_page_history'
+	id                = Column(Integer, primary_key = True)
+	errno             = Column(Integer, default='0')
+	url               = Column(Text, nullable = False, index = True, unique = True)
+
+	# Foreign key to the files table if needed.
+	file              = Column(Integer, ForeignKey('web_files.id'))
+
+	distance          = Column(Integer, index=True, nullable=False)
+
+	# Is this item a diff from the next version, or is it a full copy?
+	# Basically, sometimes the diff is larger then the file contents.
+	# therefore, we want to be able to just store the plain
+	# content in that case.
+	is_diff           = Column(Boolean, default=False)
+
+	is_text           = Column(Boolean, default=False)
+
+	title             = Column(citext.CIText)
+	mimetype          = Column(Text)
+
+	content           = Column(Text)
+
+	# The hash (md5) of the reconstructed content.
+	# Used to make sure the reconstituted history is right.
+	contenthash       = Column(Text)
+
+	fetchtime         = Column(DateTime, default=datetime.datetime.min)
+	addtime           = Column(DateTime, default=datetime.datetime.utcnow)
+
+	tsv_content       = Column(TSVectorType('content'))
+
+	file_item         = relationship("WebFiles")
+
+	# Foreign key to the files table if needed.
+	root_rel              = Column(Integer, ForeignKey('web_pages.id'), nullable = False)
+	newer_rel             = Column(Integer, ForeignKey('web_page_history.id'))
+	older_rel             = Column(Integer, ForeignKey('web_page_history.id'))
+
+
 
 # File table doesn't know anything about URLs, since they're kept in the
 # WebPages table entirely.
@@ -295,7 +378,7 @@ class PluginStatus(Base):
 
 
 
-Base.metadata.create_all(bind=get_engine(), checkfirst=True)
+# Base.metadata.create_all(bind=get_engine(), checkfirst=True)
 
 
 

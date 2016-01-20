@@ -15,6 +15,7 @@ import sys
 import sqlalchemy.exc
 import random
 
+import Misc.diff_match_patch as dmp
 from sqlalchemy import desc
 
 from sqlalchemy.sql import text
@@ -73,6 +74,7 @@ GLOBAL_BAD = [
 			'delicious.com',
 			'/comments/feed/',
 			'fbcdn-',
+			'/wp-json/',
 			'reddit.com',
 			'/osd.xml',
 			'/wp-login.php',
@@ -87,6 +89,7 @@ GLOBAL_BAD = [
 			'twitter.com/intent/',
 			'www.pinterest.com/pin/',
 			'www.wattpad.com/login?',
+			'/embed?',
 
 			# Tumblr can seriously go fuck itself with a rusty stake
 			'tumblr.com/widgets/',
@@ -99,6 +102,9 @@ GLOBAL_BAD = [
 			# mime-type dispatcher.
 			# Since I'm not re-serving favicons anyways, just do not fetch them ever.
 			'favicon.ico',
+
+			# Try to not scrape inline images
+			';base64,',
 	]
 
 
@@ -274,13 +280,32 @@ class SiteArchiver(LogBase.LoggerMixin):
 	def special_case_handle(self, job):
 		WebMirror.SpecialCase.handleSpecialCase(job, self, self.specialty_handlers)
 
+
+	def pushBackHistory(self, job, response):
+		if job.previous_release:
+			pass
+
+		return 50
+
 	# Update the row with the item contents
 	def upsertReponseContent(self, job, response):
 		while 1:
 			try:
+
+				# If we have already fetched the page, push what we have back
+				# into the history table.
+				last = None
+				if job.content:
+					last = self.pushBackHistory(job, response)
+
 				job.title    = response['title']
 				job.content  = response['contents']
 				job.mimetype = response['mimeType']
+
+				# Update the tsv_content column if we have data for it.
+				if response['contents']:
+					job.tsv_content = func.to_tsvector(func.coalesce(response['contents']))
+
 				if "text" in job.mimetype:
 					job.is_text  = True
 				else:
@@ -483,10 +508,7 @@ class SiteArchiver(LogBase.LoggerMixin):
 					time.sleep(0.1)
 
 			self.log.info("Links upserted. Items in processing queue: %s", self.resp_q.qsize())
-
-
 		else:
-
 			while 1:
 				try:
 					for link, istext in items:

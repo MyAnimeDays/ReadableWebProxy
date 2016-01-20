@@ -3,13 +3,15 @@ type: western
 
 send_raw_feed: False
 baseUrl: [
-	'http://www.asstr.org/',
-	'http://pokegirls.org/',
-	'http://www.tgstorytime.com/',
-	'http://www.booksiesilk.com/',
-	'http://storiesonline.net/',
-	'http://www.adult-fanfiction.org/',
+	'http://www.asstr.org',
+	'http://pokegirls.org',
+	'http://www.tgstorytime.com',
+	'http://www.booksiesilk.com',
+	'http://storiesonline.net',
+	'http://www.adult-fanfiction.org',
 	'https://www.fictionmania.tv',
+	'https://www.literotica.com',
+	'http://www.mcstories.com',
 	]
 extraStartUrls: [
 	'http://pokegirls.org/storyboard-listing/pokedex.html',
@@ -18,8 +20,10 @@ extraStartUrls: [
 
 badwords: [
 
-
+			'/audio/',
+			'/i/',
 			"/mailto/",
+			"/out.php?",
 			"feed?type=atom",
 
 			"/about/",
@@ -95,8 +99,33 @@ badwords: [
 
 			'bit.ly/',
 			".pdf",
+			'storyfeedbackboard.php',
+			'make_comment.php',
+			'anonfeedback.php',
+			'/storyxs/',
+
+			'/quest/bugs.php?',
+			'/stories/signup.php?',
+			'/members/lost_password.php?',
+			'/stories/addtofavs.php?',
+			'/stories/report_comment.php?',
+			'/stories/report_profile.php',
+			'/editors/contacteditor.php?',
+			'&page=contact',
+			'/secretsound.php?',
 
 			]
+
+
+# DELETE FROM web_pages WHERE (netloc = 'www.literotica.com' AND url LIKE '%/quest/bugs.php?%') OR
+#                             (netloc = 'www.literotica.com' AND url LIKE '%/stories/signup.php?%') OR
+#                             (netloc = 'www.literotica.com' AND url LIKE '%/members/lost_password.php?%') OR
+#                             (netloc = 'www.literotica.com' AND url LIKE '%/editors/contacteditor.php?%') OR
+#                             (netloc = 'www.literotica.com' AND url LIKE '%&page=contact%') OR
+#                             (netloc = 'www.literotica.com' AND url LIKE '%/stories/report_comment.php?%') OR
+#                             (netloc = 'www.literotica.com' AND url LIKE '%/secretsound.php?%') OR
+#                             (netloc = 'www.literotica.com' AND url LIKE '%/stories/report_profile.php%') OR
+#                             (netloc = 'www.literotica.com' AND url LIKE '%/stories/addtofavs.php?%');
 
 special_case_filters : {
 	"www.tgstorytime.com" : ["rate_limit", 1],
@@ -130,6 +159,10 @@ decompose: [
 	{'class'  : 'site-header'},
 	{'class'  : 'paging-navigation'},
 	{'class'  : 'comments-area'},
+	{'class'  : 'ads'},
+
+	{'class'  : 'b-sidebar'},
+	{'class'  : 'b-footer'},
 ]
 
 stripTitle: []
